@@ -1,0 +1,61 @@
+name: Feature or improvement
+description: Propose a new capability, improvement or structured work item
+title: "feat: "
+labels: []
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What outcome should this work produce?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why is this needed and what problem does it solve?
+    validations:
+      required: true
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements
+      placeholder: |
+        - Requirement 1
+        - Requirement 2
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Architecture or integration impact
+      description: Note affected repositories, services, interfaces, data flows or decisions.
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk classification
+      options:
+        - R0 — informational/read-only
+        - R1 — low risk
+        - R2 — controlled change
+        - R3 — privileged or production-affecting
+        - R4 — destructive or security-critical
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: How will completion be proven?
+    validations:
+      required: true
