@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a reproducible defect or regression
+title: "bug: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Provide enough evidence for another contributor to reproduce and verify the problem. Do not include credentials or sensitive production data.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Version, operating system, environment and relevant component versions.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Logs, receipts, screenshots or test output with secrets removed.
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - Low
+        - Moderate
+        - High
+        - Critical
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I removed credentials and sensitive data from this report.
+          required: true
+        - label: I searched for an existing issue describing the same problem.
+          required: true
