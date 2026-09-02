@@ -1,22 +1,68 @@
 # Security Policy
 
-This policy applies to all repositories under the `moon-rize-official` organization that don't publish their own `SECURITY.md`.
+This policy applies to repositories under `moon-rize-official` unless a repository publishes a stricter `SECURITY.md`.
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
-If you find a security vulnerability in any Moon-Rize project (the website, infrastructure config, or automation scripts), please report it privately rather than opening a public issue.
+Do not publish exploitable vulnerability details, live credentials, private keys or sensitive operational information in public issues, discussions, pull requests or commit messages.
 
-**Preferred method:** use GitHub's [private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing/privately-reporting-a-security-vulnerability) on the affected repository (Security tab → Report a vulnerability), where enabled.
+Preferred reporting method:
 
-**Alternative:** email **ciphermoony@proton.me** with:
-- A description of the vulnerability and its potential impact
-- Steps to reproduce it
-- Any relevant logs, screenshots, or proof-of-concept code
+1. Use GitHub private vulnerability reporting on the affected repository when enabled.
+2. If private reporting is unavailable, email `ciphermoony@proton.me`.
 
-## Response
+Include, when known:
 
-We'll acknowledge reports within a few days and aim to keep you updated as we investigate and fix confirmed issues. Please give us reasonable time to address a vulnerability before disclosing it publicly.
+- affected repository, service or component;
+- affected version, release or commit;
+- impact and likely severity;
+- prerequisites for exploitation;
+- concise reproduction steps;
+- relevant logs or evidence with unrelated sensitive data removed;
+- suggested mitigation, if available.
 
-## Scope
+## Secret exposure procedure
 
-This covers code and configuration in `moon-rize-official` repositories. It does not cover third-party services we use (Cloudflare, GitHub, etc.) — please report issues in those platforms directly to their own security teams.
+If a credential, token, password, recovery code or private key is exposed:
+
+1. revoke or rotate it immediately;
+2. determine where it was used and what authority it carried;
+3. review relevant access and audit logs;
+4. remove it from active configuration;
+5. replace dependent deployments or credentials as required;
+6. remove accidental repository exposure where practical without destroying required historical evidence;
+7. record the incident and remediation.
+
+Deleting a secret from the latest revision is not sufficient if the exposed secret remains valid.
+
+## Security-sensitive changes
+
+The following require additional review and explicit verification:
+
+- authentication and authorization;
+- identity and role configuration;
+- secrets management;
+- firewall, routing and network policy;
+- remote execution;
+- machine provisioning and disk-erasure operations;
+- production deployment;
+- backup and restore;
+- cryptography, signing and trust stores;
+- dependency and supply-chain controls;
+- changes that broaden administrative access.
+
+## Dependency handling
+
+Pin or constrain dependencies where reproducibility or supply-chain integrity requires it. Major upgrades should be tested before production adoption. Remove abandoned, redundant and unnecessary dependencies.
+
+## Supported versions
+
+Unless a repository states otherwise, the current default branch and latest supported release line receive active security maintenance.
+
+## Sensitive repository content
+
+Repositories must not contain live secrets, unrestricted production exports or private recovery material. Examples and templates must use clearly non-secret placeholders.
+
+## Third-party services
+
+Vulnerabilities in third-party services should be reported to the responsible provider unless the issue results from Moon Rize configuration or integration, in which case report the configuration problem through the process above.
