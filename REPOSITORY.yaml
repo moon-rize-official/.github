@@ -1,0 +1,40 @@
+repository:
+  id: dot-github
+  canonical_name: Moon Rize GitHub Organization Defaults
+  organization: Moon Rize
+  github: moon-rize-official/.github
+  visibility: public
+  category: organization-governance
+  criticality: tier-1
+  status: active
+  description: Organization profile, shared contribution policy, security policy and GitHub templates.
+
+ownership:
+  primary_team: moonrize-platform
+  collaborating_teams:
+    - moonrize-security
+    - moonrize-knowledge
+  maintainers:
+    - cian-omalley
+
+scope:
+  owns:
+    - organization-profile
+    - shared-contribution-policy
+    - shared-security-policy
+    - shared-issue-templates
+    - shared-pull-request-template
+    - github-organization-defaults
+  does_not_own:
+    - repository-specific-implementation
+    - live-secrets
+
+standards:
+  human_brand_name: Moon Rize
+  machine_brand_prefix: moonrize-
+  public_content_must_not_contain_sensitive_data: true
+  repository_specific_policy_may_be_stricter: true
+
+metadata:
+  schema_version: 1
+  last_reviewed: 2026-09-02
