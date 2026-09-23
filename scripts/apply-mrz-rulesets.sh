@@ -13,6 +13,14 @@ echo
 
 gh auth status >/dev/null
 
+# Normalize the one repository that did not have main as its default branch.
+echo "Ensuring music-sorter uses main as its default branch..."
+gh api --method PATCH \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: $API_VERSION" \
+  "/repos/$ORG/music-sorter" \
+  -f default_branch=main >/dev/null
+
 rulesets_json="$(gh api --paginate   -H "Accept: application/vnd.github+json"   -H "X-GitHub-Api-Version: $API_VERSION"   "/orgs/$ORG/rulesets" | jq -s 'add')"
 
 upsert_ruleset() {
