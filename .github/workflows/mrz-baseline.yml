@@ -1,0 +1,73 @@
+name: MRZ / Validate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mrz-validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    name: Baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine comparison base
+        id: base
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            base="${{ github.event.before }}"
+          elif git rev-parse HEAD^ >/dev/null 2>&1; then
+            base="$(git rev-parse HEAD^)"
+          else
+            base="$(git rev-parse HEAD)"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Reject whitespace errors
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check "${{ steps.base.outputs.base }}"...HEAD
+
+      - name: Reject newly committed secret-like files
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ steps.base.outputs.base }}"
+          failed=0
+
+          while IFS= read -r path; do
+            [[ -z "$path" ]] && continue
+            file="$(basename "$path")"
+
+            case "$file" in
+              .env|.env.local|.env.production|.env.staging|id_rsa|id_ed25519|*.pem|*.key|*.p12|*.pfx|*.kdbx|*.tfstate|*.tfstate.*)
+                case "$file" in
+                  *.example|*.sample|*.template)
+                    continue
+                    ;;
+                esac
+                echo "::error file=$path::Secret-like file must not be committed: $path"
+                failed=1
+                ;;
+            esac
+          done < <(git diff --name-only --diff-filter=ACMR "$base"...HEAD)
+
+          exit "$failed"
