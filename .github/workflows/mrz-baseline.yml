@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: mrz-validate-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   baseline:
@@ -31,7 +31,7 @@ jobs:
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             base="${{ github.event.pull_request.base.sha }}"
-          elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+          elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]] && git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
             base="${{ github.event.before }}"
           elif git rev-parse HEAD^ >/dev/null 2>&1; then
             base="$(git rev-parse HEAD^)"
