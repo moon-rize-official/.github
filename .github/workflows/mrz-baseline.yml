@@ -30,7 +30,17 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            base="${{ github.event.pull_request.base.sha }}"
+            # The event payload can lag behind the PR merge checkout when the base advances.
+            # Compare against the current target branch so base-only changes are not scanned.
+            base_ref="origin/${GITHUB_BASE_REF}"
+            if ! git rev-parse --verify "${base_ref}^{commit}" >/dev/null 2>&1; then
+              echo "::error::Pull request base branch is unavailable; refusing to validate an ambiguous range."
+              exit 1
+            fi
+            if ! base="$(git merge-base "$base_ref" HEAD)"; then
+              echo "::error::Pull request base and checkout have no common commit."
+              exit 1
+            fi
           elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
             base="${{ github.event.before }}"
             if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
