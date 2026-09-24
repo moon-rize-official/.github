@@ -31,8 +31,12 @@ jobs:
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             base="${{ github.event.pull_request.base.sha }}"
-          elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]] && git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
+          elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
             base="${{ github.event.before }}"
+            if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+              echo "::error::Push comparison base is unavailable; refusing to validate only a partial commit range."
+              exit 1
+            fi
           elif git rev-parse HEAD^ >/dev/null 2>&1; then
             base="$(git rev-parse HEAD^)"
           else
