@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: mrz-validate-${{ github.workflow }}-${{ github.ref }}
+  group: mrz-validate-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -44,8 +44,19 @@ jobs:
           elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
             base="${{ github.event.before }}"
             if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
-              echo "::error::Push comparison base is unavailable; refusing to validate only a partial commit range."
-              exit 1
+              # GitHub may still allow fetching an unreferenced pre-force-push commit by SHA.
+              git fetch --no-tags --quiet origin "$base" 2>/dev/null || true
+            fi
+            if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+              if [[ "${{ github.event.forced }}" == "true" ]]; then
+                # The old tree is unavailable. Scan every tracked file in the new tree instead
+                # of leaving a force-push permanently red or validating only HEAD^.
+                echo "::warning::Force-push base is unavailable; scanning the full tracked tree."
+                base="$(git hash-object -t tree -w /dev/null)"
+              else
+                echo "::error::Push comparison base is unavailable; refusing to validate only a partial commit range."
+                exit 1
+              fi
             fi
           elif git rev-parse HEAD^ >/dev/null 2>&1; then
             base="$(git rev-parse HEAD^)"
@@ -58,7 +69,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --check "${{ steps.base.outputs.base }}"...HEAD
+          git diff --check "${{ steps.base.outputs.base }}" HEAD
 
       - name: Reject newly committed secret-like files
         shell: bash
@@ -82,6 +93,6 @@ jobs:
                 failed=1
                 ;;
             esac
-          done < <(git diff --name-only --diff-filter=ACMR "$base"...HEAD)
+          done < <(git diff --name-only --diff-filter=ACMR "$base" HEAD)
 
           exit "$failed"
