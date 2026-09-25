@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: mrz-validate-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: mrz-validate-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   baseline:
@@ -30,9 +30,39 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            base="${{ github.event.pull_request.base.sha }}"
+            # The event payload can lag behind the PR merge checkout when the base advances.
+            # Compare against the current target branch so base-only changes are not scanned.
+            base_ref="origin/${GITHUB_BASE_REF}"
+            if ! git rev-parse --verify "${base_ref}^{commit}" >/dev/null 2>&1; then
+              echo "::error::Pull request base branch is unavailable; refusing to validate an ambiguous range."
+              exit 1
+            fi
+            if ! base="$(git merge-base "$base_ref" HEAD)"; then
+              echo "::error::Pull request base and checkout have no common commit."
+              exit 1
+            fi
           elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
             base="${{ github.event.before }}"
+            # GitHub may still allow fetching an unreferenced pre-force-push commit by SHA.
+            if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+              git fetch --no-tags --quiet origin "$base" 2>/dev/null || true
+            fi
+            if [[ "${{ github.event.forced }}" == "true" ]]; then
+              if git cat-file -e "${base}^{commit}" 2>/dev/null; then
+                # Diff from the shared ancestor so changes on the rewritten history remain visible.
+                if ! base="$(git merge-base "$base" HEAD)"; then
+                  echo "::warning::Force-push histories have no merge base; scanning the full tracked tree."
+                  base="$(git hash-object -t tree -w /dev/null)"
+                fi
+              else
+                # The old tree cannot be fetched. Scan every tracked file in the new tree.
+                echo "::warning::Force-push base is unavailable; scanning the full tracked tree."
+                base="$(git hash-object -t tree -w /dev/null)"
+              fi
+            elif ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+              echo "::error::Push comparison base is unavailable; refusing to validate only a partial commit range."
+              exit 1
+            fi
           elif git rev-parse HEAD^ >/dev/null 2>&1; then
             base="$(git rev-parse HEAD^)"
           else
@@ -44,7 +74,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --check "${{ steps.base.outputs.base }}"...HEAD
+          git diff --check "${{ steps.base.outputs.base }}" HEAD
 
       - name: Reject newly committed secret-like files
         shell: bash
@@ -68,6 +98,6 @@ jobs:
                 failed=1
                 ;;
             esac
-          done < <(git diff --name-only --diff-filter=ACMR "$base"...HEAD)
+          done < <(git diff --name-only --diff-filter=ACMR "$base" HEAD)
 
           exit "$failed"
