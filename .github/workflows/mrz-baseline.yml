@@ -43,20 +43,25 @@ jobs:
             fi
           elif [[ -n "${{ github.event.before }}" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
             base="${{ github.event.before }}"
+            # GitHub may still allow fetching an unreferenced pre-force-push commit by SHA.
             if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
-              # GitHub may still allow fetching an unreferenced pre-force-push commit by SHA.
               git fetch --no-tags --quiet origin "$base" 2>/dev/null || true
             fi
-            if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
-              if [[ "${{ github.event.forced }}" == "true" ]]; then
-                # The old tree is unavailable. Scan every tracked file in the new tree instead
-                # of leaving a force-push permanently red or validating only HEAD^.
+            if [[ "${{ github.event.forced }}" == "true" ]]; then
+              if git cat-file -e "${base}^{commit}" 2>/dev/null; then
+                # Diff from the shared ancestor so changes on the rewritten history remain visible.
+                if ! base="$(git merge-base "$base" HEAD)"; then
+                  echo "::warning::Force-push histories have no merge base; scanning the full tracked tree."
+                  base="$(git hash-object -t tree -w /dev/null)"
+                fi
+              else
+                # The old tree cannot be fetched. Scan every tracked file in the new tree.
                 echo "::warning::Force-push base is unavailable; scanning the full tracked tree."
                 base="$(git hash-object -t tree -w /dev/null)"
-              else
-                echo "::error::Push comparison base is unavailable; refusing to validate only a partial commit range."
-                exit 1
               fi
+            elif ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+              echo "::error::Push comparison base is unavailable; refusing to validate only a partial commit range."
+              exit 1
             fi
           elif git rev-parse HEAD^ >/dev/null 2>&1; then
             base="$(git rev-parse HEAD^)"
